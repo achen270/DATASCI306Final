@@ -14,6 +14,8 @@ r:
 
 {{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
 
+#comment
+
 ```{r}
 #| echo: false
 #| message: false
