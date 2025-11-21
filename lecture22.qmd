@@ -1,0 +1,202 @@
+---
+title: "DATASCI 306"
+subtitle: "Lecture 22"
+author: "[https://ds306.org/lectures/week13/lecture22.html](https://ds306.org/lectures/week14/lecture22.html)"
+format: live-revealjs
+engine: knitr
+r:
+  packages:
+    - tidyverse
+    - gapminder
+  resources:
+    - data/population.RData
+---
+
+{{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| autorun: true
+library(tidyverse)
+library(gapminder)
+theme_set(theme_minimal())
+load("~/Desktop/Datasci 306/Lectures/Datasets/population.RData")
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(tidyverse)
+library(gapminder)
+theme_set(theme_minimal())
+load("~/Desktop/Datasci 306/Lectures/Datasets/population.RData")
+```
+
+# Population growth
+
+![](images/clipboard-3501003222.png){fig-align="center"}
+
+## Overpopulation scare
+
+-   In the 1960s and 1970s, there was widespread concern that the world's population was growing too quickly.
+-   Books like *The Population Bomb* by Paul Ehrlich warned of mass starvation and societal collapse due to overpopulation.
+-   Governments and organizations considered various measures to control population growth, including family planning programs and incentives for smaller families.
+
+## Population growth models
+
+-   These dire predictions were based in part on the assumption that human population growth follows an exponential model.
+-   Exponential growth occurs when the growth rate of a population is proportional to its current size, leading to rapid increases over time.
+-   The mathematical model for exponential growth is given by the equation:
+
+## Modeling population growth
+
+-   Say each person has 2 kids.
+
+-   Each generation doubles the population:
+
+    $$ P_t = 2 \times  P_{t-1} = 2 \times 2 \times P_{t-2} = \cdots = 2^t \times P_0$$
+
+-   More generally, if each person has \$ k \$ kids, then:
+
+    $$ P_t = k \times \cdots \times k \times P_0 = P_0 \times \cdot k^t  = P_0 \times e^{t \log k}$$
+
+-   $r = \log k$ is called the growth rate.
+
+## Exponential growth model
+
+$$
+P(t) = P_0 e^{rt}
+$$ where:
+
+-   $P(t)$ is the population at time $t$,
+-   $P_0$ is the initial population,
+-   $r$ is the growth rate,
+-   $e$ is Euler's number (approximately 2.71828).
+
+## Human population data
+
+-   Historical estimates of world population have been compiled from various sources, including census data, archaeological findings, and historical records.
+-   Modern data is collected by Gapminder and UN.
+-   Forecasts also available from UN and other sources.
+-   These have been synthesized into a dataset from [OWID dataset](https://ourworldindata.org/grapher/population)
+
+## 
+
+```{r}
+library(ggplot2)
+population
+population |> filter(year >= 1900, year<=1970) |>  filter(Entity %in% c ("Asia", "Africa", "Europe", "North America")) |> ggplot() +
+  geom_line(aes(x= year, y=Population, color = Entity))
+``` 
+
+## World populations up to 1970s
+
+```{r}
+pop_1970 <- population %>% 
+  filter(Year == 1970, Entity == "World")
+
+pop_1970 <- pop_1970$Population
+
+pop_2000 <- population %>% 
+  filter(Year == 2000, Entity == "World")
+
+pop_2000 <- pop_2000$Population
+
+pop_2000-pop_1970
+```
+B, 0.0096,  , India, Bulgaria
+## Log-scaling
+
+-   Exponential growth looks linear on a log scale:
+
+    $$\log P(t) = \log P_0 + rt$$
+
+-   So if we plot $\log P(t)$ vs $t$ and exponential growth is occuring, we should see a straight line with slope $r$.
+
+## 
+
+```{r}
+# plot on log scale
+```
+
+## Estimating the growth rate using regression
+
+```{r}
+population |> filter(Year >= 1900, Year <= 1970) |> 
+  filter(Entity %in% c("Asia", "Africa", "Europe", "North America")) |> 
+  lm(log(Population) ~ Entity * Year, data = _) -> mdl
+```
+
+## Population forecasting
+
+-   Using the estimated growth rates from the regression, we can forecast future population growth.
+-   (What is this assuming?)
+
+## 
+
+```{r}
+library(modelr)
+population |> filter(Year >= 1900, Year <= 1970) |> 
+  filter(Entity %in% c("Asia", "Africa", "Europe", "North America"))|>
+  add_predictions(mdl)
+```
+
+## Predictions vs. reality
+
+```{r}
+# plot predictions as well as data
+```
+
+## Residuals from exponential model
+
+```{r}
+# plot residuals over time
+```
+
+## What caused population slowdown?
+
+-   Family planning: Increased access to contraception and family planning services allowed people to have fewer children.
+-   Economic development: As countries developed economically, birth rates tended to decline.
+-   Education: Higher levels of education
+
+## Fertility rates versus wealth
+
+```{r}
+fertility
+```
+
+## 
+
+```{r}
+gdp
+```
+
+## 
+
+```{r}
+# plot fertility vs per-capita gdp for various countries
+
+fertility |> left_join(gdp) |> ggplot(aes(x = Fertility_Rate, y = GDP)) + geom_point() + scale_y_log10()
+```
+
+# Interactive data explorer
+
+## Initiating the chat
+
+![](images/clipboard-1975166374.png)
+
+## Ask for help
+
+![](images/clipboard-4228970876.png)
+
+## Clarify design choices
+
+![](images/clipboard-1726289720.png)
+
+## Resulting app
+
+[https://gqg8ee-jonathan-terhorst.shinyapps.io/popgrowth/](https://gqg8ee-jonathan-terhorst.shinyapps.io/popgrowth/)
+
