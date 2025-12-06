@@ -29,7 +29,8 @@ condition_vars <- c(
   "thyroid_prob",
   "COPD_Emph_ChB",
   "liver_cond",
-  "gallstones"
+  "gallstones",
+  "cancer"
 )
 
 condition_labels <- c(
@@ -44,8 +45,9 @@ condition_labels <- c(
   "Stroke",
   "Thyroid problem",
   "COPD/Emphysema/Chronic bronchitis",
-  "Liver condition",
-  "Gallstones"
+  "Liver Conditions",
+  "Gallstones",
+  "Cancer"
 )
 
 # user sees label, app gets variable name
@@ -56,10 +58,10 @@ condition_choices <- setNames(condition_vars, condition_labels)
 #--------------------------------------------------
 
 nhanes <- nhanes |>
-  dplyr::mutate(
-    dplyr::across(
-      dplyr::all_of(condition_vars),
-      ~ dplyr::case_when(
+  mutate(
+    across(
+      all_of(condition_vars),
+      ~ case_when(
         . %in% c(1, "Yes")       ~ 1,
         . %in% c(0, 2, "No")     ~ 0,
         TRUE                     ~ NA_real_
@@ -177,7 +179,7 @@ server <- function(input, output, session) {
     
     # Age filter
     df <- df |>
-      dplyr::filter(
+      filter(
         Age_yr >= input$age_range[1],
         Age_yr <= input$age_range[2]
       )
@@ -185,18 +187,18 @@ server <- function(input, output, session) {
     # Gender filter
     if (!is.null(input$gender) && input$gender != "All") {
       df <- df |>
-        dplyr::filter(Gender == input$gender)
+        filter(Gender == input$gender)
     }
     
     # Race filter
     if (!is.null(input$race) && input$race != "All") {
       df <- df |>
-        dplyr::filter(Race == input$race)
+        filter(Race == input$race)
     }
     
     # Make sure selected condition is not NA
     df <- df |>
-      dplyr::filter(!is.na(.data[[input$condition]]))
+      filter(!is.na(.data[[input$condition]]))
     
     df
   })
@@ -208,9 +210,9 @@ server <- function(input, output, session) {
     df <- filtered_data()
     
     df |>
-      dplyr::mutate(
+      mutate(
         chronic_count = rowSums(
-          dplyr::across(all_of(condition_vars)),
+          across(all_of(condition_vars)),
           na.rm = TRUE
         )
       )
@@ -223,13 +225,13 @@ server <- function(input, output, session) {
     df <- data_with_burden()
     
     df |>
-      dplyr::group_by(post_covid) |>
-      dplyr::summarize(
-        n          = dplyr::n(),
+      group_by(post_covid) |>
+      summarize(
+        n          = n(),
         prevalence = mean(.data[[input$condition]], na.rm = TRUE),
         .groups    = "drop"
       ) |>
-      dplyr::mutate(
+      mutate(
         period = ifelse(post_covid == 0, "Pre-COVID", "Post-COVID"),
         prevalence_pct = 100 * prevalence
       )
@@ -237,8 +239,8 @@ server <- function(input, output, session) {
   
   output$prev_table <- renderTable({
     prev_summary() |>
-      dplyr::select(period, n, prevalence_pct) |>
-      dplyr::rename(
+      select(period, n, prevalence_pct) |>
+      rename(
         Period           = period,
         N                = n,
         `Prevalence (%)` = prevalence_pct
@@ -330,7 +332,7 @@ server <- function(input, output, session) {
     if (!isTRUE(input$show_reg)) return(NULL)
     
     reg_tidy() |>
-      dplyr::rename(
+      rename(
         term        = term,
         OR          = estimate,
         `Lower 95%` = conf.low,
@@ -342,9 +344,50 @@ server <- function(input, output, session) {
   #------------------------------
   # 2.6 Data table
   #------------------------------
-  output$data_table <- renderDataTable({
-    data_with_burden()
+  
+  filter_for_df <- reactive({
+    req(input$age_range, input$race, input$gender)
+    
+    df1 <- nhanes
+    
+    # Age filter
+    df1 <- df1 |>
+      filter(
+        Age_yr >= input$age_range[1],
+        Age_yr <= input$age_range[2]
+      )
+    
+    # Gender filter
+    if (!is.null(input$gender) && input$gender != "All") {
+      df1 <- df1 |>
+        filter(Gender == input$gender)
+    }
+    
+    # Race filter
+    if (!is.null(input$race) && input$race != "All") {
+      df1 <- df1 |>
+        filter(Race == input$race)
+    }
+    
+    df1
   })
+  
+  output$data_table <- renderDataTable({
+    prop_df <- filter_for_df() |>
+      mutate(across(all_of(condition_vars), ~ if_else(.x == 1, 1, 0))) |>
+      pivot_longer(cols = all_of(condition_vars), 
+                   names_to = "disease", 
+                   values_to = "has_condition") |>
+      group_by(post_covid, disease) |>
+      summarise(proportion = mean(has_condition, na.rm = TRUE), .groups = "drop") |> 
+      pivot_wider(names_from = post_covid, values_from = proportion) |> select(-any_of('NA')) |> 
+      rename(pre_covid = "FALSE",
+             post_covid = "TRUE") |> 
+      mutate('difference (pre - post)' =  pre_covid - post_covid,
+             disease = factor(disease, 
+                              levels = condition_vars, 
+                              labels = condition_labels))
+    })
   #------------------------------
   # 2.7 Proportion test (Pre vs Post)
   #------------------------------
