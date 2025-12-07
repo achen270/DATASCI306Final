@@ -88,7 +88,7 @@ ui <- fluidPage(
       
       sliderInput(
         inputId = "age_range",
-        label   = "Age range (years):",
+        label   = "Age Range (years):",
         min     = min(nhanes$Age_yr, na.rm = TRUE),
         max     = max(nhanes$Age_yr, na.rm = TRUE),
         value   = c(18, max(nhanes$Age_yr, na.rm = TRUE))
@@ -119,7 +119,7 @@ ui <- fluidPage(
       
       checkboxInput(
         inputId = "show_reg",
-        label   = "Show logistic regression results",
+        label   = "Show Logistic Regression Results",
         value   = TRUE
       ),
       
@@ -297,9 +297,9 @@ server <- function(input, output, session) {
         labels = c("FALSE" = "Pre-COVID", "TRUE" = "Post-COVID")) +
         
         labs(
-          x = "Number of chronic conditions per person",
+          x = "Number of Chronic Conditions Per Person",
           y = "Count",
-          title = "Distribution of chronic condition burden\nPre vs Post COVID"
+          title = "Distribution of Chronic Condition Burden\nPre vs Post COVID"
         ) + theme_minimal()
     }
       
@@ -311,9 +311,9 @@ server <- function(input, output, session) {
       )) + guides(fill = "none") + 
 
       labs(
-        x = "Number of chronic conditions per person",
+        x = "Number of Chronic Conditions Per Person",
         y = "Count",
-        title = "Distribution of chronic condition burden\nPre vs Post COVID"
+        title = "Distribution of Chronic Condition Burden\nPre vs Post COVID"
        ) + theme_minimal()
     }
   })
