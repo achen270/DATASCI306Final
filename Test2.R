@@ -94,12 +94,12 @@ ui <- fluidPage(
         value   = c(18, max(nhanes$Age_yr, na.rm = TRUE))
       ),
       
-      selectInput(
+      checkboxGroupInput(
         inputId = "gender",
         label   = "Gender:",
         #choices = c("All", sort(unique(nhanes$Gender))),
-        choices = setNames(c("All", 1, 2), c("All", "Male", "Female")),
-        selected = "All"
+        choices = setNames(c(1, 2), c("Male", "Female")),
+        selected = c(1,2)
       ),
       
       selectInput(
@@ -122,6 +122,14 @@ ui <- fluidPage(
         label   = "Show logistic regression results",
         value   = TRUE
       ),
+      
+      radioButtons(
+        "hist_mode",
+        "Histogram Display:",
+        choices = c("Overlap" = "overlap", "Side-by-side" = "facet"),
+        selected = "overlap"
+      ),
+      
       
       width = 3
     ),
@@ -185,7 +193,7 @@ server <- function(input, output, session) {
       )
     
     # Gender filter
-    if (!is.null(input$gender) && input$gender != "All") {
+    if (!is.null(input$gender) && length(input$gender) > 0) {
       df <- df |>
         filter(Gender == input$gender)
     }
@@ -253,31 +261,25 @@ server <- function(input, output, session) {
     # get pretty label for title
     cond_label <- condition_labels[match(input$condition, condition_vars)]
     
-    ggplot(ps, aes(x = period, y = prevalence_pct)) +
-      geom_col() +
+    ggplot(ps, aes(x = period, y = prevalence_pct, fill = period)) +
+      geom_col(alpha = 0.5) +
+      
+      scale_fill_manual(
+        values = c("Pre-COVID" = "salmon", "Post-COVID" = "cyan"),
+        labels = c("FALSE" = "Pre-COVID", "TRUE" = "Post-COVID"))  +
+        
       labs(
-        x = "Period",
+        x = "Time Frame",
         y = "Prevalence (%)",
         title = paste0(
           "Pre vs Post COVID Prevalence: ",
           cond_label
         )
       ) +
-      ylim(0, max(ps$prevalence_pct, na.rm = TRUE) * 1.1)
+      ylim(0, max(ps$prevalence_pct, na.rm = TRUE) * 1.1) + theme_minimal()
   })
   
-  output$prop_table <- renderTable({
-    pt <- prop_test()
-    
-    # Extract readable summary
-    data.frame(
-      Group            = c("Pre-COVID", "Post-COVID"),
-      Proportion       = round(pt$estimate, 4),
-      `95% CI Lower`   = round(pt$conf.int[1], 4),
-      `95% CI Upper`   = round(pt$conf.int[2], 4),
-      `p-value`        = round(pt$p.value, 4)
-    )
-  })
+
   
   #------------------------------
   # 2.4 Chronic burden plot
@@ -285,17 +287,35 @@ server <- function(input, output, session) {
   output$burden_plot <- renderPlot({
     df <- data_with_burden()
     
+    if (input$hist_mode == "overlap") {
+      ggplot(df, aes(x = chronic_count, fill = factor(post_covid))) +
+        geom_histogram(position = "identity", alpha = 0.5, bins = 10) +
+        
+        scale_fill_manual(
+        name = "Time Frame",
+        values = c("FALSE" = "salmon", "TRUE" = "cyan"),
+        labels = c("FALSE" = "Pre-COVID", "TRUE" = "Post-COVID")) +
+        
+        labs(
+          x = "Number of chronic conditions per person",
+          y = "Count",
+          title = "Distribution of chronic condition burden\nPre vs Post COVID"
+        ) + theme_minimal()
+    }
+      
+    else {
     ggplot(df, aes(x = chronic_count, fill = factor(post_covid))) +
       geom_histogram(position = "identity", alpha = 0.5, bins = 10) +
-      scale_fill_discrete(
-        name = "Period",
-        labels = c("0" = "Pre-COVID", "1" = "Post-COVID")
-      ) +
+      facet_wrap(~ post_covid, labeller = as_labeller(
+        c("FALSE" = "Pre-COVID", "TRUE" = "Post-COVID")
+      )) + guides(fill = "none") + 
+
       labs(
-        x = "Number of chronic conditions",
+        x = "Number of chronic conditions per person",
         y = "Count",
         title = "Distribution of chronic condition burden\nPre vs Post COVID"
-      )
+       ) + theme_minimal()
+    }
   })
   
   #------------------------------
@@ -357,8 +377,9 @@ server <- function(input, output, session) {
         Age_yr <= input$age_range[2]
       )
     
+
     # Gender filter
-    if (!is.null(input$gender) && input$gender != "All") {
+    if (!is.null(input$gender) && length(input$gender) > 0) {
       df1 <- df1 |>
         filter(Gender == input$gender)
     }
@@ -395,23 +416,39 @@ server <- function(input, output, session) {
     df <- filtered_data()
     
     # Count successes and totals
-    tab <- df |>
-      group_by(post_covid) |>
-      summarize(
-        total = n(),
-        positives = sum(.data[[input$condition]] == 1, na.rm = TRUE),
-        .groups = "drop"
-      )
+    x_pre <- df |> filter(post_covid == FALSE, 
+                          .data[[input$condition]] == 1) |> nrow()
+    x_post <- df |> filter(post_covid == TRUE, 
+                           .data[[input$condition]] == 1) |> nrow()
+    n_pre <- df |> filter(post_covid == FALSE) |> nrow()
+    n_post <- df |> filter(post_covid == TRUE) |> nrow()
     
-    # Must have both groups
-    req(nrow(tab) == 2)
-    
-    # Extract counts
-    x <- tab$positives      # number of cases
-    n <- tab$total          # sample size
+    req(n_pre > 0, n_post > 0)
     
     # Run 2-sample test for equality of proportions
-    stats::prop.test(x = x, n = n, correct = FALSE)
+    prop.test(x = c(x_pre, x_post), n = c(n_pre, n_post), correct = FALSE)
+  })
+  
+  output$prop_table <- renderTable({
+    pt <- prop_test()
+    
+    pre_prop  <- pt$estimate[1]
+    post_prop <- pt$estimate[2]
+    
+    df <- filtered_data()
+    n_pre <- df |> filter(post_covid == FALSE) |> nrow()
+    n_post <- df |> filter(post_covid == TRUE) |> nrow()
+    
+    data.frame(
+      `Pre-COVID proportion`    = round(pre_prop, 4),
+      'Number of Pre-COVID' = n_pre,
+      `Post-COVID proportion`   = round(post_prop, 4),
+      'Number of Pre-COVID' = n_post,
+      `Difference (pre - post)` = round(post_prop - pre_prop, 4),
+      `95% CI Lower`            = round(pt$conf.int[1], 4),
+      `95% CI Upper`            = round(pt$conf.int[2], 4),
+      `p-value`                 = round(pt$p.value, 4)
+    )
   })
 }
 
