@@ -5,4 +5,4 @@
 4. Next, hit Run App to view the shiny app locally
 
 Note:
-Shiny application link: [https://uq8s5i-andy-chen.shinyapps.io/datasci306project/](https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/)
+Shiny application link: (https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/)
