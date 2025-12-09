@@ -8,6 +8,7 @@ library(broom)
 #--------------------------------------------------
 # 0. Load your data
 #--------------------------------------------------
+#https://uq8s5i-andy-chen.shinyapps.io/datasci306project/
 
 obj_name <- load("NHANES_Medical_Conditions_Pre_Post_Covid.RData")
 nhanes <- get(obj_name)  # or set nhanes <- your_data_frame_name explicitly
@@ -460,3 +461,4 @@ server <- function(input, output, session) {
 #--------------------------------------------------
 
 shinyApp(ui = ui, server = server)
+
