@@ -1,8 +1,18 @@
 # DATASCI306Final
-1. Download the app.R File
-2. Download the NHANES_Medical_Conditions_Pre_Post_Covid.RData File
-3. NOTE: If these two files are not in the same folder, ensure you change the directory source of the RData file in the R file.
-4. Next, hit Run App to view the shiny app locally
+This Shiny app visualizes and compares the prevalence and burden of chronic conditions in NHANES participants before and after the COVID-19 pandemic.
+
+##  Local application
+
+1. Download the following files into the same folder:
+   - `app.R`
+   - `NHANES_Medical_Conditions_Pre_Post_Covid.RData`
+
+2. Open `app.R` in RStudio.
+
+3. Set your working directory to the folder containing these files (in RStudio: Session → Set Working Directory → To Source File Location).
+
+4. Click Run App
+
 
 Note:
-Shiny application link: (https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/)
+You can also access the app without running R locally: https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/
