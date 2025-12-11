@@ -15,4 +15,5 @@ This Shiny app visualizes and compares the prevalence and burden of chronic cond
 
 
 Note:
-You can also access the app without running R locally: https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/
+You can also access the app without running R locally: 
+https://bowvso-brandon-buckner.shinyapps.io/nhanes_shiny_app/
