@@ -196,7 +196,7 @@ server <- function(input, output, session) {
     # Gender filter
     if (!is.null(input$gender) && length(input$gender) > 0) {
       df <- df |>
-        filter(Gender == input$gender)
+        filter(Gender %in% input$gender)
     }
     
     # Race filter
@@ -242,6 +242,7 @@ server <- function(input, output, session) {
       ) |>
       mutate(
         period = ifelse(post_covid == 0, "Pre-COVID", "Post-COVID"),
+        period = factor(period, levels = c("Pre-COVID", "Post-COVID")),
         prevalence_pct = 100 * prevalence
       )
   })
@@ -267,7 +268,7 @@ server <- function(input, output, session) {
       
       scale_fill_manual(
         values = c("Pre-COVID" = "salmon", "Post-COVID" = "cyan"),
-        labels = c("FALSE" = "Pre-COVID", "TRUE" = "Post-COVID"))  +
+        breaks = c("Pre-COVID", "Post-COVID")) +
         
       labs(
         x = "Time Frame",
@@ -445,7 +446,7 @@ server <- function(input, output, session) {
       'Number of Pre-COVID' = n_pre,
       `Post-COVID proportion`   = round(post_prop, 4),
       'Number of Pre-COVID' = n_post,
-      `Difference (pre - post)` = round(post_prop - pre_prop, 4),
+      'Difference (post - pre)' = round(post_prop - pre_prop, 4),
       `95% CI Lower`            = round(pt$conf.int[1], 4),
       `95% CI Upper`            = round(pt$conf.int[2], 4),
       `p-value`                 = round(pt$p.value, 4)
